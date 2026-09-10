@@ -101,6 +101,20 @@ jobs:
           echo "GFA_VER=$V" >> "$GITHUB_ENV"
           echo "version = $V"
 
+      - name: Configure
+        shell: bash -el {0}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release ..
+
+      - name: Compile
+        shell: bash -el {0}
+        working-directory: build
+        run: make -j4
+
+      # Runs AFTER Configure so gqrx's own `git describe --long --dirty`
+      # (in CMakeLists.txt) sees a clean tree — otherwise the sed below
+      # marks the working copy dirty and the app version gets a "-dirty".
       - name: Rebrand macos_bundle.sh
         env:
           SIGN_IDENTITY: ${{ secrets.SIGN_IDENTITY || secrets.NOTARIZE_TEAM_ID }}
@@ -115,17 +129,6 @@ jobs:
             -e 's#Gqrx\.app#Gqrx-for-AntennaHead.app#g' \
             macos_bundle.sh
           echo "--- patched header ---"; sed -n '1,35p' macos_bundle.sh
-
-      - name: Configure
-        shell: bash -el {0}
-        run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release ..
-
-      - name: Compile
-        shell: bash -el {0}
-        working-directory: build
-        run: make -j4
 
       - name: Build app bundle
         shell: bash -el {0}
