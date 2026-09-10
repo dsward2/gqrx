@@ -31,10 +31,6 @@
 #include "qtgui/ioconfig.h"
 #include "mainwindow.h"
 
-#include <osmosdr/device.h>
-#include <osmosdr/source.h>
-#include <osmosdr/ranges.h>
-
 #ifdef WITH_PULSEAUDIO
 #include "pulseaudio/pa_device_list.h"
 #elif WITH_PORTAUDIO
@@ -1105,18 +1101,13 @@ QString RemoteControl::cmd_get_input_device_list()
  */
 QString RemoteControl::cmd_get_input_device() const
 {
-    std::map<QString, QVariant> devList;
-    CIoConfig::getDeviceList(devList);
-    QPointer<QSettings> settingsPtr;
+    // Just read the stored setting: probing the hardware (getDeviceList) here
+    // stalls for seconds while a device is open, and this getter doesn't need it.
     MainWindow *mw = qobject_cast<MainWindow*>(parent());
-    if (mw)
-        settingsPtr = mw->settings();
+    if (!mw || !mw->settings())
+        return QString("RPRT 1\n");
 
-    auto *ioconf = new CIoConfig(settingsPtr.data(), devList, nullptr);
-    QString indev = settingsPtr->value("input/device", "").toString();
-    delete ioconf;
-
-    return indev + "\n";
+    return mw->settings()->value("input/device", "").toString() + "\n";
 }
 
 /*
@@ -1124,24 +1115,18 @@ QString RemoteControl::cmd_get_input_device() const
  */
 QString RemoteControl::cmd_set_input_device(QStringList cmdlist) const
 {
-    if (cmdlist.size() != 2)
+    MainWindow *mw = qobject_cast<MainWindow*>(parent());
+    if (!mw || !mw->settings() || cmdlist.size() < 2)
         return QString("RPRT 1\n");
 
-    std::map<QString, QVariant> devList;
-    CIoConfig::getDeviceList(devList);
-    QPointer<QSettings> settingsPtr;
-    MainWindow *mw = qobject_cast<MainWindow*>(parent());
-    if (mw)
-        settingsPtr = mw->settings();
-
-    auto *ioconf = new CIoConfig(settingsPtr.data(), devList, nullptr);
-    QString indev = cmdlist[1];
-      settingsPtr->setValue("input/device", indev);
+    // gr-osmosdr device strings can contain spaces, so re-join everything after
+    // the command word rather than taking a single token.
+    QString indev = cmdlist.mid(1).join(" ");
+    mw->settings()->setValue("input/device", indev);
     mw->storeSession();
-    mw->loadConfig(settingsPtr->fileName(), false, false);
-    delete ioconf;
+    mw->loadConfig(mw->settings()->fileName(), false, false);
 
-    return QString("RPRT 0\n");   
+    return QString("RPRT 0\n");
 }
 
 
@@ -1190,18 +1175,11 @@ QString RemoteControl::cmd_get_output_device_list()
  */
 QString RemoteControl::cmd_get_output_device() const
 {
-    std::map<QString, QVariant> devList;
-    CIoConfig::getDeviceList(devList);
-    QPointer<QSettings> settingsPtr;
     MainWindow *mw = qobject_cast<MainWindow*>(parent());
-    if (mw)
-        settingsPtr = mw->settings();
+    if (!mw || !mw->settings())
+        return QString("RPRT 1\n");
 
-    auto *ioconf = new CIoConfig(settingsPtr.data(), devList, nullptr);
-    QString indev = settingsPtr->value("output/device", "").toString();
-    delete ioconf;
-
-    return indev + "\n";
+    return mw->settings()->value("output/device", "").toString() + "\n";
 }
 
 /*
@@ -1209,20 +1187,12 @@ QString RemoteControl::cmd_get_output_device() const
  */
 QString RemoteControl::cmd_set_output_device(QStringList cmdlist) const
 {
-    if (cmdlist.size() != 2)
+    MainWindow *mw = qobject_cast<MainWindow*>(parent());
+    if (!mw || !mw->settings() || cmdlist.size() < 2)
         return QString("RPRT 1\n");
 
-    std::map<QString, QVariant> devList;
-    CIoConfig::getDeviceList(devList);
-    QPointer<QSettings> settingsPtr;
-    MainWindow *mw = qobject_cast<MainWindow*>(parent());
-    if (mw)
-        settingsPtr = mw->settings();
+    // Audio device names routinely contain spaces ("Built-in Output").
+    mw->settings()->setValue("output/device", cmdlist.mid(1).join(" "));
 
-    auto *ioconf = new CIoConfig(settingsPtr.data(), devList, nullptr);
-    QString indev = cmdlist[1];
-    settingsPtr->setValue("output/device", indev);
-    delete ioconf;
-
-    return QString("RPRT 0\n");   
+    return QString("RPRT 0\n");
 }
