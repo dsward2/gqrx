@@ -130,7 +130,7 @@ jobs:
           # emit "Gqrx-for-AntennaHead.app" with our identity/name/version,
           # keeping every other line of the upstream script intact.
           sed -i '' \
-            -e "s#^IDENTITY=.*#IDENTITY=${SIGN_IDENTITY}#" \
+            -e "s#^IDENTITY=.*#IDENTITY='${SIGN_IDENTITY}'#" \
             -e "s#\$(<build/version.txt)#${GFA_VER}#" \
             -e 's#<string>dk\.gqrx\.gqrx</string>#<string>com.dsward.gqrx-for-antennahead</string>#' \
             -e 's#^  <string>Gqrx</string>#  <string>Gqrx for AntennaHead</string>#' \
