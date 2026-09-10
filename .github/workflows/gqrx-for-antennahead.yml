@@ -112,6 +112,14 @@ jobs:
         working-directory: build
         run: make -j4
 
+      - name: Strip local symbols
+        run: |
+          # Strip the gqrx executable BEFORE macos_bundle.sh copies and
+          # signs it (stripping after would invalidate the signature).
+          # -x keeps external/undefined symbols the dynamic linker needs.
+          strip -x build/src/gqrx
+          size build/src/gqrx || true
+
       # Runs AFTER Configure so gqrx's own `git describe --long --dirty`
       # (in CMakeLists.txt) sees a clean tree — otherwise the sed below
       # marks the working copy dirty and the app version gets a "-dirty".
