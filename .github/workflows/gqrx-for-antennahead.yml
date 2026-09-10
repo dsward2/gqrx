@@ -90,15 +90,26 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: true
+
+      - name: Compute version
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git fetch --tags --force || true
+          V="$(git describe --tags --always 2>/dev/null | sed 's/^v//')"
+          [ -n "$V" ] || V="0.0.0-$(git rev-parse --short HEAD)"
+          echo "GFA_VER=$V" >> "$GITHUB_ENV"
+          echo "version = $V"
 
       - name: Rebrand macos_bundle.sh
         env:
           SIGN_IDENTITY: ${{ secrets.SIGN_IDENTITY || secrets.NOTARIZE_TEAM_ID }}
         run: |
-          # emit "Gqrx-for-AntennaHead.app" with our identity/name, keeping
-          # every other line of the upstream script intact.
+          # emit "Gqrx-for-AntennaHead.app" with our identity/name/version,
+          # keeping every other line of the upstream script intact.
           sed -i '' \
             -e "s#^IDENTITY=.*#IDENTITY=${SIGN_IDENTITY}#" \
+            -e "s#\$(<build/version.txt)#${GFA_VER}#" \
             -e 's#<string>dk\.gqrx\.gqrx</string>#<string>com.dsward.gqrx-for-antennahead</string>#' \
             -e 's#^  <string>Gqrx</string>#  <string>Gqrx for AntennaHead</string>#' \
             -e 's#Gqrx\.app#Gqrx-for-AntennaHead.app#g' \
@@ -122,6 +133,15 @@ jobs:
           CONDA_PREFIX: ${{ steps.setup-micromamba.outputs.environment-path }}
         run: ./macos_bundle.sh ${{ steps.secret-check.outputs.available }}
 
+      - name: Ad-hoc sign (no signing secrets)
+        if: ${{ steps.secret-check.outputs.available != 'true' }}
+        run: |
+          # macos_bundle.sh strips signatures in its no-secret path and
+          # macdeployqt doesn't seal the bundle — re-sign ad-hoc so the app
+          # at least has a valid (if unnotarized) signature.
+          codesign --force --deep --sign - --timestamp=none Gqrx-for-AntennaHead.app
+          codesign --verify --deep --strict --verbose=2 Gqrx-for-AntennaHead.app
+
       - name: Notarize app bundle
         if: ${{ steps.secret-check.outputs.available == 'true' }}
         env:
@@ -140,7 +160,7 @@ jobs:
 
       - name: Create DMG
         run: |
-          VER="$(<build/version.txt)"; VER="${VER#v}"
+          VER="${GFA_VER#v}"
           STAGE="$RUNNER_TEMP/dmg"; rm -rf "$STAGE"; mkdir -p "$STAGE"
           cp -R Gqrx-for-AntennaHead.app "$STAGE/"
           ln -s /Applications "$STAGE/Applications"
