@@ -207,5 +207,30 @@ jobs:
         with:
           files: Gqrx-for-AntennaHead-*.dmg
           body: |
-            Unofficial interim build: official Gqrx + PRs #1463 / #1464 / #1446.
-            See AntennaHead `Docs/GQRX_FOR_ANTENNAHEAD_BUILD.md`.
+            ## Gqrx for AntennaHead
+
+            Unofficial interim build of Gqrx — official upstream source plus three
+            open remote-control PRs that haven't landed yet:
+
+            - [#1463](https://github.com/gqrx-sdr/gqrx/pull/1463) — `l/L FILTER_SHAPE` (soft/normal/sharp filter shape)
+            - [#1464](https://github.com/gqrx-sdr/gqrx/pull/1464) — bookmark download & recall over remote control
+            - [#1446](https://github.com/gqrx-sdr/gqrx/pull/1446) — input/output device selection over remote control
+
+            Built to let [AntennaHead](https://github.com/dsward2/AntennaHead)'s
+            "Listen to Gqrx" page drive these before they're in an official release.
+            See `AntennaHead/Docs/GQRX_FOR_ANTENNAHEAD_BUILD.md` for the build recipe
+            and `LISTEN_TO_GQRX_REMOTE_CONTROL_FEASIBILITY.md` for the full feature
+            design.
+
+            **This build:**
+            - Developer ID signed, hardened runtime, notarized, stapled — no
+              Gatekeeper warning on install
+            - Two DMGs: Apple Silicon (`arm64`) and Intel (`x86_64`)
+            - Not sandboxed (needs raw USB for RTL-SDR access — see the build doc
+              for why)
+            - Bundle id `com.dsward.gqrx-for-antennahead`, so it won't collide with
+              an official Gqrx install
+
+            **Not affiliated with or endorsed by the Gqrx project.** If these PRs
+            merge upstream, this build becomes unnecessary — use official Gqrx
+            instead.
