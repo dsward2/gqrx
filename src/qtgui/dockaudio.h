@@ -74,6 +74,7 @@ public slots:
     void setWfColormap(const QString &cmap);
     void setAudioGainDb(float gain);
     void setAudioMuted(bool muted);
+    void setStreamingEnabled(bool enabled);
 
 signals:
     /*! \brief Signal emitted when audio gain has changed. Gain is in dB. */
@@ -102,6 +103,9 @@ signals:
     
     /*! \brief Audio mute chenged. */
     void audioMuted(bool muted);
+
+    /*! \brief UDP audio streaming button toggled (manually, from the dock). */
+    void streamingEnabledChanged(bool enabled);
 
 private slots:
     void on_audioGainSlider_valueChanged(int value);
