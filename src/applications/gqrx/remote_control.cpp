@@ -675,7 +675,7 @@ QString RemoteControl::cmd_get_level(QStringList cmdlist)
         QStringList names;
         for(auto &g : gains)
             names.push_back(QString("%1_GAIN").arg(QString::fromStdString(g.name)));
-        answer = QString("SQL STRENGTH AF %1\n").arg(names.join(" "));
+        answer = QString("SQL STRENGTH AF FILTER_OFFSET %1\n").arg(names.join(" "));
     }
     else if (lvl.compare("STRENGTH", Qt::CaseInsensitive) == 0 || lvl.isEmpty())
     {
@@ -688,6 +688,10 @@ QString RemoteControl::cmd_get_level(QStringList cmdlist)
     else if (lvl.compare("AF", Qt::CaseInsensitive) == 0)
     {
         answer = QString("%1\n").arg((double)audio_gain, 0, 'f', 1);
+    }
+    else if (lvl.compare("FILTER_OFFSET", Qt::CaseInsensitive) == 0)
+    {
+        answer = QString("%1\n").arg(rc_filter_offset);
     }
     else if (lvl.endsWith("_GAIN"))
     {
@@ -721,7 +725,7 @@ QString RemoteControl::cmd_set_level(QStringList cmdlist)
         QStringList names;
         for(auto &g : gains)
             names.push_back(QString("%1_GAIN").arg(QString::fromStdString(g.name)));
-        answer = QString("SQL AF %1\n").arg(names.join(" "));
+        answer = QString("SQL AF FILTER_OFFSET %1\n").arg(names.join(" "));
     }
     else if (lvl.compare("SQL", Qt::CaseInsensitive) == 0)
     {
@@ -747,6 +751,27 @@ QString RemoteControl::cmd_set_level(QStringList cmdlist)
             answer = QString("RPRT 0\n");
             new_audio_gain = std::max<float>(-80.0f, std::min<float>(50.0f, new_audio_gain));
             emit newAudioGain(new_audio_gain);
+        }
+        else
+        {
+            answer = QString("RPRT 1\n");
+        }
+    }
+    else if (lvl.compare("FILTER_OFFSET", Qt::CaseInsensitive) == 0)
+    {
+        bool ok;
+        qint64 offset = (qint64)cmdlist.value(2, "ERR").toDouble(&ok);
+        if (ok)
+        {
+            answer = QString("RPRT 0\n");
+            // Same margin setNewRemoteFreq() uses internally when the F
+            // command nudges the offset instead of retuning hardware — keeps
+            // the passband within the receiver's current bandwidth rather
+            // than letting a wild request push the filter edges past what's
+            // actually tunable without a hardware retune.
+            qint64 bwh_eff = (qint64)(0.8f * (float)bw_half);
+            rc_filter_offset = std::max<qint64>(-bwh_eff, std::min<qint64>(bwh_eff, offset));
+            emit newFilterOffset(rc_filter_offset);
         }
         else
         {
