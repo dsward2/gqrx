@@ -354,6 +354,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockRDS, SIGNAL(radiotextChanged(QString)), remote, SLOT(setRdsRadiotext(QString)));
     connect(remote, SIGNAL(newAudioMuted(bool)), uiDockAudio, SLOT(setAudioMuted(bool)));
     connect(uiDockAudio, SIGNAL(audioMuted(bool)), remote, SLOT(setAudioMuted(bool)));
+    connect(remote, SIGNAL(newStreamingEnabled(bool)), uiDockAudio, SLOT(setStreamingEnabled(bool)));
+    connect(uiDockAudio, SIGNAL(streamingEnabledChanged(bool)), remote, SLOT(setStreamingEnabled(bool)));
 
     rds_timer = new QTimer(this);
     connect(rds_timer, SIGNAL(timeout()), this, SLOT(rdsTimeout()));

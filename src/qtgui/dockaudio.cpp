@@ -130,6 +130,21 @@ void DockAudio::setAudioMuted(bool muted)
     ui->audioMuteButton->click();
 }
 
+/*! \brief Set UDP audio streaming state (e.g. from a remote-control client).
+ *  \param enabled true to start streaming, false to stop.
+ *
+ * Same "set opposite, then click" trick as setAudioMuted(): click() toggles
+ * the checkable button to the desired state *and* fires
+ * on_audioStreamButton_clicked(), so the existing start/stop wiring
+ * (audioStreamingStarted/audioStreamingStopped) runs exactly as it would
+ * from a manual click — no separate start/stop path to keep in sync.
+ */
+void DockAudio::setStreamingEnabled(bool enabled)
+{
+    ui->audioStreamButton->setChecked(!enabled);
+    ui->audioStreamButton->click();
+}
+
 
 /*! \brief Get current audio gain.
  *  \returns The current audio gain in tens of dB (0 dB = 10).
@@ -212,6 +227,7 @@ void DockAudio::on_audioStreamButton_clicked(bool checked)
         emit audioStreamingStarted(udp_host, udp_port, udp_stereo);
     else
         emit audioStreamingStopped();
+    emit streamingEnabledChanged(checked);
 }
 
 /*! \brief Record button clicked.

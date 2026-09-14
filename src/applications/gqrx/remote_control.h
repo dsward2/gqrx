@@ -104,6 +104,7 @@ public slots:
     void setSquelchLevel(double level);
     void setAudioGain(float gain);
     void setAudioMuted(bool muted);
+    void setStreamingEnabled(bool enabled);
     void startAudioRecorder(QString unused);
     void stopAudioRecorder();
     void startIqRecorder(QString unused1, QString unused2);
@@ -132,6 +133,7 @@ signals:
     void newRDSmode(bool value);
     void newAudioMuted(bool muted);
     void newBookmarkActivated(qint64 freq, QString demod, int bandwidth);
+    void newStreamingEnabled(bool enabled);
 
 private slots:
     void acceptConnection();
@@ -167,6 +169,7 @@ private:
     bool        hamlib_compatible;
     gain_list_t gains;             /*!< Possible and current gain settings */
     bool        is_audio_muted;
+    bool        streaming_status;  /*!< UDP audio streaming enabled */
 
 #ifdef WITH_PULSEAUDIO
     vector<pa_device>           outDevList;
