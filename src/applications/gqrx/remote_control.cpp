@@ -23,11 +23,23 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <map>
 #include <QString>
 #include <QStringList>
 #include "remote_control.h"
 #include "qtgui/dockrxopt.h"
 #include "qtgui/bookmarks.h"
+#include "qtgui/ioconfig.h"
+#include "mainwindow.h"
+
+#ifdef WITH_PULSEAUDIO
+#include "pulseaudio/pa_device_list.h"
+#elif WITH_PORTAUDIO
+#include "portaudio/device_list.h"
+#elif defined(Q_OS_DARWIN)
+#include "osxaudio/device_list.h"
+#endif
+
 
 #define DEFAULT_RC_PORT            7356
 #define DEFAULT_RC_ALLOWED_HOSTS   "127.0.0.1"
@@ -274,6 +286,18 @@ void RemoteControl::startRead()
             answer = cmd_set_bookmark_freq(cmdlist);
         else if (cmd == "\\reload_bookmarks")
             answer = cmd_reload_bookmarks();
+        else if (cmd == "\\get_input_device_list")
+            answer = cmd_get_input_device_list();
+        else if (cmd == "\\get_input_device")
+            answer = cmd_get_input_device();
+        else if (cmd == "\\set_input_device")
+            answer = cmd_set_input_device(cmdlist);
+        else if (cmd == "\\get_output_device_list")
+            answer = cmd_get_output_device_list();
+        else if (cmd == "\\get_output_device")
+            answer = cmd_get_output_device();
+        else if (cmd == "\\set_output_device")
+            answer = cmd_set_output_device(cmdlist);
         else if (cmd == "q" || cmd == "Q")
         {
             // FIXME: for now we assume 'close' command
@@ -1215,6 +1239,55 @@ QString RemoteControl::cmd_set_bookmark(QStringList cmdlist)
 }
 
 /*
+ * The '\get_input_device_list' command
+ */
+QString RemoteControl::cmd_get_input_device_list()
+{
+    std::map<QString, QVariant> devList;
+    CIoConfig::getDeviceList(devList);
+
+    QString devListString;
+    for (const auto &dev : devList)    {
+        devListString += dev.first + "\n";
+    }  
+
+    return devListString;
+}
+
+/*
+ * The '\get_input_device' command
+ */
+QString RemoteControl::cmd_get_input_device() const
+{
+    // Just read the stored setting: probing the hardware (getDeviceList) here
+    // stalls for seconds while a device is open, and this getter doesn't need it.
+    MainWindow *mw = qobject_cast<MainWindow*>(parent());
+    if (!mw || !mw->settings())
+        return QString("RPRT 1\n");
+
+    return mw->settings()->value("input/device", "").toString() + "\n";
+}
+
+/*
+ * The '\set_input_device' command
+ */
+QString RemoteControl::cmd_set_input_device(QStringList cmdlist) const
+{
+    MainWindow *mw = qobject_cast<MainWindow*>(parent());
+    if (!mw || !mw->settings() || cmdlist.size() < 2)
+        return QString("RPRT 1\n");
+
+    // gr-osmosdr device strings can contain spaces, so re-join everything after
+    // the command word rather than taking a single token.
+    QString indev = cmdlist.mid(1).join(" ");
+    mw->settings()->setValue("input/device", indev);
+    mw->storeSession();
+    mw->loadConfig(mw->settings()->fileName(), false, false);
+
+    return QString("RPRT 0\n");
+}
+
+/*
  * The '\set_bookmark_freq <frequency>' command.
  *
  * Activate the first bookmark whose frequency equals <frequency> [Hz]. This is
@@ -1247,4 +1320,71 @@ QString RemoteControl::cmd_set_bookmark_freq(QStringList cmdlist)
 QString RemoteControl::cmd_reload_bookmarks()
 {
     return Bookmarks::Get().load() ? QString("RPRT 0\n") : QString("RPRT 1\n");
+}
+
+/*
+ * The '\get_output_device_list' command
+ */
+QString RemoteControl::cmd_get_output_device_list()
+{
+    // get list of audio output devices
+    QString devListString = "Default\n";
+
+#ifdef WITH_PULSEAUDIO
+    pa_device_list devices;
+    outDevList = devices.get_output_devices();
+    for (auto &dev : outDevList)
+    {
+        QString outdevName = QString(dev.get_name().c_str());
+        QString outdevDesc = QString(dev.get_description().c_str());
+        devListString += outdevName + "\n";
+    }
+#elif WITH_PORTAUDIO
+    portaudio_device_list   devices;
+    outDevList = devices.get_output_devices();
+    for (auto &dev : outDevList)
+    {
+        QString outdevName = QString(dev.get_name().c_str());
+        QString outdevDesc = QString(dev.get_description().c_str());
+        devListString += outdevName + "\n";
+    }
+#elif defined(Q_OS_DARWIN)
+    osxaudio_device_list devices;
+    outDevList = devices.get_output_devices();
+    for (auto &dev : outDevList)
+    {
+        QString outdevName = QString(dev.get_name().c_str());
+        QString outdevDesc = QString(dev.get_description().c_str());
+        devListString += outdevName + "\n";
+    }
+#endif // WITH_PULSEAUDIO
+
+    return devListString;
+}
+
+/*
+ * The '\get_output_device' command
+ */
+QString RemoteControl::cmd_get_output_device() const
+{
+    MainWindow *mw = qobject_cast<MainWindow*>(parent());
+    if (!mw || !mw->settings())
+        return QString("RPRT 1\n");
+
+    return mw->settings()->value("output/device", "").toString() + "\n";
+}
+
+/*
+ * The '\set_output_device' command
+ */
+QString RemoteControl::cmd_set_output_device(QStringList cmdlist) const
+{
+    MainWindow *mw = qobject_cast<MainWindow*>(parent());
+    if (!mw || !mw->settings() || cmdlist.size() < 2)
+        return QString("RPRT 1\n");
+
+    // Audio device names routinely contain spaces ("Built-in Output").
+    mw->settings()->setValue("output/device", cmdlist.mid(1).join(" "));
+
+    return QString("RPRT 0\n");
 }
