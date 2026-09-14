@@ -1,8 +1,9 @@
 name: Gqrx for AntennaHead
 
-# Builds "Gqrx for AntennaHead" — official Gqrx source + the three open
-# remote-control PRs (#1463 filter shape, #1464 bookmarks, #1446 device
-# control), combined on this branch — into per-arch .dmg files.
+# Builds "Gqrx for AntennaHead" — official Gqrx source + five open
+# remote-control commands (#1463 filter shape, #1464 bookmarks, #1446 device
+# control, dsward2/gqrx#2 UDP streaming toggle, dsward2/gqrx#1 filter offset),
+# combined on this branch — into per-arch .dmg files.
 #
 # Modelled on gqrx-sdr/gqrx .github/workflows/build.yml (job `macos`).
 # Without signing secrets it still runs and uploads an ad-hoc / unsigned
@@ -209,12 +210,14 @@ jobs:
           body: |
             ## Gqrx for AntennaHead
 
-            Unofficial interim build of Gqrx — official upstream source plus three
-            open remote-control PRs that haven't landed yet:
+            Unofficial interim build of Gqrx — official upstream source plus five
+            open remote-control commands that haven't landed upstream yet:
 
             - [#1463](https://github.com/gqrx-sdr/gqrx/pull/1463) — `l/L FILTER_SHAPE` (soft/normal/sharp filter shape)
             - [#1464](https://github.com/gqrx-sdr/gqrx/pull/1464) — bookmark download & recall over remote control
             - [#1446](https://github.com/gqrx-sdr/gqrx/pull/1446) — input/output device selection over remote control
+            - [dsward2/gqrx#2](https://github.com/dsward2/gqrx/pull/2) — `U/u UDP` — toggle Gqrx's own UDP audio-streaming button over remote control
+            - [dsward2/gqrx#1](https://github.com/dsward2/gqrx/pull/1) — `l/L FILTER_OFFSET` — read/write the channel offset within the current passband, without a hardware retune
 
             Built to let [AntennaHead](https://github.com/dsward2/AntennaHead)'s
             "Listen to Gqrx" page drive these before they're in an official release.
