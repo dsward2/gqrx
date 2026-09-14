@@ -54,6 +54,7 @@ RemoteControl::RemoteControl(QObject *parent) :
     receiver_running = false;
     hamlib_compatible = false;
     is_audio_muted = false;
+    streaming_status = false;
 
     rc_port = DEFAULT_RC_PORT;
     rc_allowed_hosts.append(DEFAULT_RC_ALLOWED_HOSTS);
@@ -376,6 +377,12 @@ void RemoteControl::setAudioGain(float gain)
 void RemoteControl::setAudioMuted(bool muted)
 {
     is_audio_muted = muted;
+}
+
+/*! \brief Set UDP audio streaming status (from mainwindow). */
+void RemoteControl::setStreamingEnabled(bool enabled)
+{
+    streaming_status = enabled;
 }
 
 /*! \brief Start audio recorder (from mainwindow). */
@@ -804,7 +811,7 @@ QString RemoteControl::cmd_get_func(QStringList cmdlist)
     QString func = cmdlist.value(1, "");
 
     if (func == "?")
-        answer = QString("RECORD IQRECORD DSP RDS MUTE\n");
+        answer = QString("RECORD IQRECORD DSP RDS MUTE UDP\n");
     else if (func.compare("RECORD", Qt::CaseInsensitive) == 0)
         answer = QString("%1\n").arg(audio_recorder_status);
     else if (func.compare("IQRECORD", Qt::CaseInsensitive) == 0)
@@ -815,6 +822,8 @@ QString RemoteControl::cmd_get_func(QStringList cmdlist)
         answer = QString("%1\n").arg(rds_status);
     else if (func.compare("MUTE", Qt::CaseInsensitive) == 0)
         answer = QString("%1\n").arg(is_audio_muted ? '1' : '0');
+    else if (func.compare("UDP", Qt::CaseInsensitive) == 0)
+        answer = QString("%1\n").arg(streaming_status ? '1' : '0');
     else
         answer = QString("RPRT 1\n");
 
@@ -831,7 +840,7 @@ QString RemoteControl::cmd_set_func(QStringList cmdlist)
 
     if (func == "?")
     {
-        answer = QString("RECORD IQRECORD DSP RDS MUTE\n");
+        answer = QString("RECORD IQRECORD DSP RDS MUTE UDP\n");
     }
     else if ((func.compare("RECORD", Qt::CaseInsensitive) == 0) && ok)
     {
@@ -880,6 +889,15 @@ QString RemoteControl::cmd_set_func(QStringList cmdlist)
             emit newAudioMuted(true);
         else
             emit newAudioMuted(false);
+
+        answer = QString("RPRT 0\n");
+    }
+    else if ((func.compare("UDP", Qt::CaseInsensitive) == 0) && ok)
+    {
+        if (status)
+            emit newStreamingEnabled(true);
+        else
+            emit newStreamingEnabled(false);
 
         answer = QString("RPRT 0\n");
     }
